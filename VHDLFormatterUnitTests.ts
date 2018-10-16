@@ -926,6 +926,9 @@ function IntegrationTest() {
     IntegrationTest64();
     IntegrationTest65();
     IntegrationTest66();
+    IntegrationTest67();
+    IntegrationTest68();
+    IntegrationTest69();
 }
 
 function IntegrationTest23() {
@@ -1331,6 +1334,30 @@ function IntegrationTest66() {
     let expected = 'COMPONENT a IS\r\n    GENERIC (\r\n        b\r\n    );\r\n    PORT (\r\n        c\r\n    );\r\nEND COMPONENT;\r\n-- anything1\r\n-- anything2';
     let actual = beautify(input, settings);
     assert("port map no new line 2", expected, actual);
+}
+
+function IntegrationTest67() {
+    let settings = GetDefaultSettings();
+    let input = 'type STATE_TYPE is (\r\n      A,\r\nB,\r\n    C);\r\nA';
+    let expected = 'TYPE STATE_TYPE IS (\r\n    A,\r\n    B,\r\n    C);\r\nA';
+    let actual = beautify(input, settings);
+    assert("multiline enumerated type is", expected, actual);
+}
+
+function IntegrationTest68() {
+    let settings = GetDefaultSettings();
+    let input = 'type STATE_TYPE is (A,  B, C);\r\nA';
+    let expected = 'TYPE STATE_TYPE IS (A, B, C);\r\nA';
+    let actual = beautify(input, settings);
+    assert("single line enumerated type is", expected, actual);
+}
+
+function IntegrationTest69() {
+    let settings = GetDefaultSettings();
+    let input = 'type STATE_TYPE is (\r\n      A,\r\nB,\r\n    C\r\n);\r\nA';
+    let expected = 'TYPE STATE_TYPE IS (\r\n    A,\r\n    B,\r\n    C\r\n);\r\nA';
+    let actual = beautify(input, settings);
+    assert("multiline enumerated type is", expected, actual);
 }
 
 function GetDefaultSettings() {

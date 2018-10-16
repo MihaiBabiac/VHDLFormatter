@@ -6,6 +6,10 @@ VHDL formatter web online written in javascript
 
 ## Release Notes
 
+### 2.2 [2018-10-16]
+
+- support enumerated types
+
 ### 2.1 [2018-03-22]
 
 - fix keywords case issues

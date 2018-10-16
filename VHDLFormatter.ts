@@ -73,6 +73,10 @@ declare global {
         regexStartsWith: (pattern: RegExp) => boolean;
         count: (text: string) => number;
         regexCount: (pattern: RegExp) => number;
+        convertToRegexBlockWords: () => RegExp;
+    }
+    interface Array<T>{
+        convertToRegexBlockWords: () => RegExp;
     }
 }
 
@@ -106,6 +110,17 @@ String.prototype.regexLastIndexOf = function (pattern, startIndex) {
 
 String.prototype.reverse = function () {
     return this.split('').reverse().join('');
+}
+
+String.prototype.convertToRegexBlockWords = function (): RegExp {
+    let result: RegExp = new RegExp("(" + this + ")([^\\w]|$)");
+    return result;
+}
+
+Array.prototype.convertToRegexBlockWords = function (): RegExp {
+    let wordsStr: string = this.join("|");
+    let result: RegExp = new RegExp("(" + wordsStr + ")([^\\w]|$)");
+    return result;
 }
 
 function wordWrap() {
@@ -153,7 +168,7 @@ function noFormat() {
             htmlElement.className = htmlElement.className.replace(/\bdisabled\b/g, "");
         }
     });
-    let radioButtons = <HTMLFormElement>document.getElementsByTagName("input");
+    let radioButtons = <HTMLCollectionOf<HTMLInputElement>>document.getElementsByTagName("input");
     for (let i = 0; i < radioButtons.length; i++) {
         if ((<HTMLInputElement>radioButtons[i]).type == "radio") {
             (<HTMLInputElement>radioButtons[i]).disabled = isDisabled;
@@ -702,18 +717,21 @@ export function beautify3(inputs: Array<string>, result: (FormattedLine | Format
         "UNITS",
         "\\w+\\s+\\w+\\s+IS\\s+RECORD"];
     let blockEndsKeyWords: Array<string> = ["END", ".*\\)\\s*RETURN\\s+[\\w]+;"];
-    let blockEndsWithSemicolon: Array<string> = ["(WITH\\s+[\\w\\s\\\\]+SELECT)", "([\\w\\\\]+[\\s]*<=)", "([\\w\\\\]+[\\s]*:=)", "FOR\\s+[\\w\\s,]+:\\s*\\w+\\s+USE", "REPORT"];
+    let blockEndsWithSemicolon: Array<string> = [
+        "(WITH\\s+[\\w\\s\\\\]+SELECT)",
+        "([\\w\\\\]+[\\s]*<=)",
+        "([\\w\\\\]+[\\s]*:=)",
+        "FOR\\s+[\\w\\s,]+:\\s*\\w+\\s+USE",
+        "REPORT"
+    ];
 
     let newLineAfterKeyWordsStr: string = blockStartsKeyWords.join("|");
-    let blockEndKeyWordsStr: string = blockEndsKeyWords.join("|");
-    let blockMidKeyWordsStr: string = blockMidKeyWords.join("|");
-    let blockEndsWithSemicolonStr: string = blockEndsWithSemicolon.join("|");
-    let regexBlockMidKeyWords: RegExp = new RegExp("(" + blockMidKeyWordsStr + ")([^\\w]|$)")
+    let regexBlockMidKeyWords: RegExp = blockMidKeyWords.convertToRegexBlockWords();
     let regexBlockStartsKeywords: RegExp = new RegExp("([\\w]+\\s*:\\s*)?(" + newLineAfterKeyWordsStr + ")([^\\w]|$)")
-    let regexBlockEndsKeyWords: RegExp = new RegExp("(" + blockEndKeyWordsStr + ")([^\\w]|$)")
-    let regexblockEndsWithSemicolon: RegExp = new RegExp("(" + blockEndsWithSemicolonStr + ")([^\\w]|$)")
-    let regexMidKeyWhen: RegExp = new RegExp("(" + "WHEN" + ")([^\\w]|$)")
-    let regexMidKeyElse: RegExp = new RegExp("(" + "ELSE|ELSIF" + ")([^\\w]|$)")
+    let regexBlockEndsKeyWords: RegExp = blockEndsKeyWords.convertToRegexBlockWords()
+    let regexblockEndsWithSemicolon: RegExp = blockEndsWithSemicolon.convertToRegexBlockWords();
+    let regexMidKeyWhen: RegExp = "WHEN".convertToRegexBlockWords();
+    let regexMidKeyElse: RegExp = "ELSE|ELSIF".convertToRegexBlockWords();
     if (endIndex == null) {
         endIndex = inputs.length - 1;
     }
@@ -752,6 +770,10 @@ export function beautify3(inputs: Array<string>, result: (FormattedLine | Format
         }
         if (input.regexStartsWith(/[\w\s:]*PORT([\s]|$)/)) {
             [i, endIndex] = beautifyPortGenericBlock(inputs, result, settings, i, endIndex, indent, "PORT");
+            continue;
+        }
+        if (input.regexStartsWith(/TYPE\s+\w+\s+IS\s+\(/)) {
+            [i, endIndex] = beautifyPortGenericBlock(inputs, result, settings, i, endIndex, indent, "IS");
             continue;
         }
         if (input.regexStartsWith(/[\w\s:]*GENERIC([\s]|$)/)) {

@@ -86,6 +86,15 @@ String.prototype.regexLastIndexOf = function (pattern, startIndex) {
 String.prototype.reverse = function () {
     return this.split('').reverse().join('');
 };
+String.prototype.convertToRegexBlockWords = function () {
+    let result = new RegExp("(" + this + ")([^\\w]|$)");
+    return result;
+};
+Array.prototype.convertToRegexBlockWords = function () {
+    let wordsStr = this.join("|");
+    let result = new RegExp("(" + wordsStr + ")([^\\w]|$)");
+    return result;
+};
 function wordWrap() {
     var d = document.getElementById("result");
     if (d.className == "") {
@@ -635,17 +644,20 @@ function beautify3(inputs, result, settings, startIndex, indent, endIndex) {
         "\\w+\\s+\\w+\\s+IS\\s+RECORD"
     ];
     let blockEndsKeyWords = ["END", ".*\\)\\s*RETURN\\s+[\\w]+;"];
-    let blockEndsWithSemicolon = ["(WITH\\s+[\\w\\s\\\\]+SELECT)", "([\\w\\\\]+[\\s]*<=)", "([\\w\\\\]+[\\s]*:=)", "FOR\\s+[\\w\\s,]+:\\s*\\w+\\s+USE", "REPORT"];
+    let blockEndsWithSemicolon = [
+        "(WITH\\s+[\\w\\s\\\\]+SELECT)",
+        "([\\w\\\\]+[\\s]*<=)",
+        "([\\w\\\\]+[\\s]*:=)",
+        "FOR\\s+[\\w\\s,]+:\\s*\\w+\\s+USE",
+        "REPORT"
+    ];
     let newLineAfterKeyWordsStr = blockStartsKeyWords.join("|");
-    let blockEndKeyWordsStr = blockEndsKeyWords.join("|");
-    let blockMidKeyWordsStr = blockMidKeyWords.join("|");
-    let blockEndsWithSemicolonStr = blockEndsWithSemicolon.join("|");
-    let regexBlockMidKeyWords = new RegExp("(" + blockMidKeyWordsStr + ")([^\\w]|$)");
+    let regexBlockMidKeyWords = blockMidKeyWords.convertToRegexBlockWords();
     let regexBlockStartsKeywords = new RegExp("([\\w]+\\s*:\\s*)?(" + newLineAfterKeyWordsStr + ")([^\\w]|$)");
-    let regexBlockEndsKeyWords = new RegExp("(" + blockEndKeyWordsStr + ")([^\\w]|$)");
-    let regexblockEndsWithSemicolon = new RegExp("(" + blockEndsWithSemicolonStr + ")([^\\w]|$)");
-    let regexMidKeyWhen = new RegExp("(" + "WHEN" + ")([^\\w]|$)");
-    let regexMidKeyElse = new RegExp("(" + "ELSE|ELSIF" + ")([^\\w]|$)");
+    let regexBlockEndsKeyWords = blockEndsKeyWords.convertToRegexBlockWords();
+    let regexblockEndsWithSemicolon = blockEndsWithSemicolon.convertToRegexBlockWords();
+    let regexMidKeyWhen = "WHEN".convertToRegexBlockWords();
+    let regexMidKeyElse = "ELSE|ELSIF".convertToRegexBlockWords();
     if (endIndex == null) {
         endIndex = inputs.length - 1;
     }
@@ -684,6 +696,10 @@ function beautify3(inputs, result, settings, startIndex, indent, endIndex) {
         }
         if (input.regexStartsWith(/[\w\s:]*PORT([\s]|$)/)) {
             [i, endIndex] = beautifyPortGenericBlock(inputs, result, settings, i, endIndex, indent, "PORT");
+            continue;
+        }
+        if (input.regexStartsWith(/TYPE\s+\w+\s+IS\s+\(/)) {
+            [i, endIndex] = beautifyPortGenericBlock(inputs, result, settings, i, endIndex, indent, "IS");
             continue;
         }
         if (input.regexStartsWith(/[\w\s:]*GENERIC([\s]|$)/)) {
